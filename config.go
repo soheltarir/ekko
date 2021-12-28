@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/mcuadros/go-defaults"
-	"github.com/soheltarir/gollections/containers"
 	"github.com/spf13/viper"
 	"log"
 )
@@ -12,19 +11,6 @@ type Server struct {
 	Name      string `mapstructure:"name"`
 	Game      string `mapstructure:"game"`
 	IPAddress string `mapstructure:"ip"`
-}
-
-func (s Server) Key() interface{} {
-	return s.Name
-}
-
-func (s Server) Less(value containers.Container) bool {
-	y := value.(Server)
-	return s.Name < y.Name
-}
-
-func (Server) Validate(x interface{}) containers.Container {
-	return x.(Server)
 }
 
 type loggingConfig struct {
