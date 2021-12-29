@@ -26,8 +26,7 @@ func setupLogger() *zap.Logger {
 		enabledCores = append(enabledCores, consoleCore)
 	}
 	core := zapcore.NewTee(enabledCores...)
-	logger := zap.New(core)
-	return logger
+	return zap.New(core).WithOptions(zap.OnFatal(zapcore.WriteThenNoop))
 }
 
 var Log *zap.Logger

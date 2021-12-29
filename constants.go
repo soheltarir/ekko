@@ -1,9 +1,15 @@
 package main
 
-import "go.uber.org/zap/zapcore"
+import (
+	"github.com/pterm/pterm"
+	"go.uber.org/zap/zapcore"
+)
 
 const (
 	DefaultFileLogPath = "logs/results.ndjson"
+	DefaultColor       = pterm.FgWhite
+	DefaultWarnColor   = pterm.FgLightYellow
+	DefaultErrorColor  = pterm.FgRed
 )
 
 var GlobalLogConfig = zapcore.EncoderConfig{

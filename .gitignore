@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-ludus-pinger
+ekko
 
 # Test binary, built with `go test -c`
 *.test
@@ -23,3 +23,6 @@ logs/
 
 # Configuration files
 config.yaml
+
+# Distribution
+dist/
