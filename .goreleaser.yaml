@@ -1,4 +1,4 @@
-project_name: ekko
+project_name: Ekko
 env:
   - EKKO_SAMPLE_CONFIG_URL=https://public-configurations.s3.ap-southeast-1.amazonaws.com/ekko_sample_config.yaml
 before:
@@ -26,6 +26,8 @@ archives:
       linux: Linux
       windows: Windows
       amd64: x86_64
+    format: zip
+    name_template: "Ekko-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: "ekko"
     files:
       - LICENSE
