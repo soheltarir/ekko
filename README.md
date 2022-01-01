@@ -4,7 +4,7 @@ Tool to ping servers (using ICMP & UDP) and track response time and packet loss.
 ![Sample](sample_ui.png)
 
 ## 📦 Installation
-Download the appropriate zip file from [Ekko Releases] (https://github.com/soheltarir/ekko/releases) link.
+Download the appropriate zip file from [Ekko Releases](https://github.com/soheltarir/ekko/releases) link.
 
 ## 🛠 Configuration
 
