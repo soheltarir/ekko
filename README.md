@@ -1,4 +1,8 @@
 # Ekko
+
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/soheltarir/ekko?style=flat-square)
+![GitHub](https://img.shields.io/github/license/soheltarir/ekko?style=flat-square)
+
 Tool to ping servers (using ICMP & UDP) and track response time and packet loss.
 
 ![Sample](sample_ui.png)
