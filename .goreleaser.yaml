@@ -5,6 +5,7 @@ before:
   hooks:
     # you may remove this if you don't need go generate
     - go generate ./...
+    - mkdir -p pre_build
     - curl {{ .Env.EKKO_SAMPLE_CONFIG_URL }} --output pre_build/config.yaml
 builds:
   - env:
