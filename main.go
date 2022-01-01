@@ -9,29 +9,26 @@ import (
 )
 
 func main() {
-	Log.Info("Started the service")
+	Log.Info("Ekko service started")
 	PrintIntro()
-
-	// Channel to listen for table updates
-	uiEventChan := make(chan UIEvent)
-
-	// create the consumer
-	consumer := NewConsumer(uiEventChan)
-
-	// Send the servers to ping as events to worker/s
-	producer := Producer{callbackFunc: consumer.callbackFunc}
-	go producer.start()
 
 	// Set up cancellation context and wait group
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}
 
-	// Start consumer with cancellation context passed
-	go consumer.startConsumer(ctx)
+	// create the consumer
+	consumer := NewConsumer()
+
+	// Send the servers to ping as events to worker/s
+	producer := Producer{callbackFunc: consumer.callbackFunc}
+	go producer.start(ctx)
 
 	// Render table and listen for updates
-	table := NewStatsTable(Config.Servers, uiEventChan, ctx)
-	go table.listenForChange()
+	table := NewStatsTable(Config.Servers, consumer.UIEventChan)
+	go table.listenForChange(ctx)
+
+	// Start consumer with cancellation context passed
+	go consumer.startConsumer(ctx)
 
 	// Start workers and Add [workerPoolSize] to WaitGroup
 	wg.Add(Config.WorkerPoolSize)
@@ -49,5 +46,6 @@ func main() {
 	Log.Warn("Shutdown signal received")
 	cancelFunc() // Signal cancellation to context.Context
 	wg.Wait()    // Block here until are workers are done
-	Log.Info("All workers stopped, shutting down")
+	consumer.closeUIChannel()
+	Log.Debug("All workers stopped, shutting down")
 }

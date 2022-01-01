@@ -39,7 +39,7 @@ type StatRow struct {
 
 func (s StatRow) rtt(datum time.Duration) string {
 	ms := datum.Milliseconds()
-	color := DefaultColor
+	color := DefaultGoodColor
 	if ms > 200 {
 		color = DefaultErrorColor
 	} else if ms > 100 && ms < 200 {
@@ -50,7 +50,7 @@ func (s StatRow) rtt(datum time.Duration) string {
 }
 
 func (s StatRow) loss(datum float64) string {
-	color := DefaultColor
+	color := DefaultGoodColor
 	if datum > 10 {
 		color = DefaultErrorColor
 	} else if datum > 5 && datum < 10 {
@@ -65,7 +65,7 @@ func (s StatRow) name() string {
 	if s.err != "" {
 		style = pterm.NewStyle(pterm.Bold, pterm.FgRed)
 	} else {
-		style = pterm.NewStyle(pterm.Bold, pterm.FgBlue)
+		style = pterm.NewStyle(pterm.Bold, pterm.FgWhite)
 	}
 	return style.Sprint(s.dest.Name)
 }
@@ -126,15 +126,17 @@ type StatsTable struct {
 	eventChan chan UIEvent
 	// area contains the table
 	area *pterm.AreaPrinter
-	ctx  context.Context
 }
 
-func NewStatsTable(destinations []Server, uiEventChan chan UIEvent, ctx context.Context) *StatsTable {
+func NewStatsTable(destinations []Server, uiEventChan chan UIEvent) *StatsTable {
+	if !Config.UIEnabled {
+		// Skip if UI is disabled
+		return &StatsTable{}
+	}
 	table := StatsTable{
 		rows:       make([][]string, 0),
 		addressMap: make(map[string]int),
 		eventChan:  uiEventChan,
-		ctx:        ctx,
 	}
 	// Initialise the area
 	var err error
@@ -163,7 +165,11 @@ func NewStatsTable(destinations []Server, uiEventChan chan UIEvent, ctx context.
 	return &table
 }
 
-func (t *StatsTable) listenForChange() {
+func (t *StatsTable) listenForChange(ctx context.Context) {
+	if !Config.UIEnabled {
+		// Skip if UI is disabled
+		return
+	}
 	for {
 		select {
 		case event := <-t.eventChan:
@@ -174,7 +180,8 @@ func (t *StatsTable) listenForChange() {
 			// Re-render the table
 			tableStr, _ := pterm.DefaultTable.WithHasHeader().WithData(t.rows).Srender()
 			t.area.Update(tableStr)
-		case <-t.ctx.Done():
+		case <-ctx.Done():
+			Log.Warn("Received termination signal, stopping listening to changes in UI")
 			if err := t.area.Stop(); err != nil {
 				log.Fatal("Failed to terminate area printer", err)
 			}
@@ -185,19 +192,22 @@ func (t *StatsTable) listenForChange() {
 
 // PrintIntro outputs the program metadata along with title
 func PrintIntro() {
-	if !Config.Logging.PrettyConsoleEnabled {
+	if !Config.UIEnabled {
 		return
 	}
 	pterm.Println()
 	if err := pterm.DefaultBigText.WithLetters(
-		pterm.NewLettersFromString("Network Test"),
+		pterm.NewLettersFromStringWithStyle("Ekko ", pterm.NewStyle(pterm.FgLightMagenta)),
+		pterm.NewLettersFromStringWithStyle("Network Test", pterm.NewStyle(pterm.FgLightYellow)),
 	).Render(); err != nil {
 		Log.Panic("Failed to print header", zap.Error(err))
 	}
 	pterm.Println()
 	if Config.Logging.FileEnabled {
 		pterm.Info.Println("File logging enabled")
-		pterm.Info.Println("Log path: ", Config.Logging.FileOutput)
+		pterm.Info.Printfln("Results Log path: %s/%s", FileLogDirectory, ResultsLogName)
+		pterm.Info.Printfln("Debug Log path: %s/%s", FileLogDirectory, DebugLogName)
 	}
+
 	pterm.Println()
 }

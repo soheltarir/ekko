@@ -14,10 +14,9 @@ type Server struct {
 }
 
 type loggingConfig struct {
-	FileEnabled          bool   `mapstructure:"file_enabled"`
-	ConsoleEnabled       bool   `mapstructure:"console_enabled"`
-	FileOutput           string `mapstructure:"file_output"`
-	PrettyConsoleEnabled bool   `mapstructure:"pretty_console_enabled"`
+	FileEnabled       bool   `mapstructure:"file_enabled"`
+	ConsoleEnabled    bool   `mapstructure:"console_enabled"`
+	FileLogsDirectory string `mapstructure:"file_logs_dir"`
 }
 
 type config struct {
@@ -28,6 +27,7 @@ type config struct {
 	PingTimeout    int64 `mapstructure:"ping_timeout" default:"30"`  // in seconds
 	PingInterval   int64 `mapstructure:"ping_interval" default:"30"` // in seconds
 	WorkerPoolSize int   `mapstructure:"worker_pool_size" default:"5"`
+	UIEnabled      bool  `mapstructure:"ui_enabled" default:"true"`
 }
 
 var Config *config
@@ -36,6 +36,7 @@ func initialiseViper() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/ekko")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Panicf("Error reading config file: %s\n", err)
 	}
@@ -47,10 +48,7 @@ func init() {
 		log.Panicf("Invalid configuration, %s", err)
 	}
 	defaults.SetDefaults(Config)
-	if !viper.IsSet("logging.file_output") {
-		Config.Logging.FileOutput = DefaultFileLogPath
-	}
-	if viper.GetBool("logging.console_enabled") && viper.GetBool("logging.pretty_console_enabled") {
-		log.Panicf("Both logging.console_enabled & logging.pretty_console_enabled can't be enabled simultaneously")
+	if viper.GetBool("logging.console_enabled") && viper.GetBool("ui_enabled") {
+		log.Panicf("Both logging.console_enabled & ui_enabled can't be enabled simultaneously")
 	}
 }

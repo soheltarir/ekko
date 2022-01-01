@@ -1,0 +1,44 @@
+project_name: ekko
+env:
+  - EKKO_SAMPLE_CONFIG_URL=https://public-configurations.s3.ap-southeast-1.amazonaws.com/ekko_sample_config.yaml
+before:
+  hooks:
+    # you may remove this if you don't need go generate
+    - go generate ./...
+    - curl {{ .Env.EKKO_SAMPLE_CONFIG_URL }} --output pre_build/config.yaml
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+    ignore:
+      - goos: windows
+        goarch: arm64
+archives:
+  - replacements:
+      darwin: Mac
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+    wrap_in_directory: "ekko"
+    files:
+      - LICENSE
+      - src: pre_build/config.yaml
+        dst: .
+        strip_parent: true
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

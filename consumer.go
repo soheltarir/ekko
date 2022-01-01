@@ -16,48 +16,68 @@ type Consumer struct {
 	// activePingJobs contains the list of actively running ping jobs
 	activePingJobs sync.Map
 	lock           sync.Mutex
-	// uiEventChan is the channel via which UI change events will be sent
-	uiEventChan chan UIEvent
+	// UIEventChan is the channel via which UI change events will be sent
+	UIEventChan chan UIEvent
+	Status      ConsumerStatus
 }
 
 // callbackFunc is invoked each time the producer sends an event.
 func (c *Consumer) callbackFunc(event Server) {
+	Log.Debug("Attempting to send event to ingestion channel", zap.Any("event", event), zap.Int("current_channel_size", len(c.ingestChan)))
 	c.ingestChan <- event
+	Log.Debug("Sent event to ingestion channel", zap.Any("event", event))
 }
 
 // notifyTableRenderer sends an event to the table renderer with new data
 func (c *Consumer) notifyTableRenderer(dest Server, stats *ping.Statistics, err string) {
+	// Skip sending an event if UI is disabled or the consumer is not running
+	if !Config.UIEnabled || c.Status != ConsumerRunning {
+		return
+	}
 	c.lock.Lock()
-	c.uiEventChan <- UIEvent{dest: dest, stats: stats, err: err}
-	c.lock.Unlock()
+	defer c.lock.Unlock()
+	Log.Debug("Attempting to send UI event", zap.String("dest", dest.Address), zap.String("error", err))
+	c.UIEventChan <- UIEvent{dest: dest, stats: stats, err: err}
+	Log.Debug("Successfully sent UI event", zap.String("dest", dest.Address), zap.String("error", err))
 }
 
 // stopActivePingJobs attempts to stop all actively running ping jobs
 func (c *Consumer) stopActivePingJobs() {
 	c.activePingJobs.Range(func(key, value interface{}) bool {
 		pinger := value.(*ping.Pinger)
-		Log.Info("Stopping pinger", zap.Int("pinger_id", key.(int)),
+		Log.Warn("Stopping pinger", zap.Int("pinger_id", key.(int)),
 			zap.String("address", pinger.Addr()))
 		pinger.Stop()
-		Log.Info("Successfully stopped pinger", zap.Int("pinger_id", key.(int)),
+		Log.Debug("Successfully stopped pinger", zap.Int("pinger_id", key.(int)),
 			zap.String("address", pinger.Addr()))
 		return true
 	})
 }
 
+func (c *Consumer) closeUIChannel() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	Log.Warn("Closing UI events channel")
+	close(c.UIEventChan)
+	Log.Debug("UI events channel successfully closed")
+}
+
 // startConsumer acts as the proxy between the ingestChan and jobsChan,
 // with a select to support graceful shutdown.
 func (c *Consumer) startConsumer(ctx context.Context) {
+	c.Status = ConsumerRunning
 	for {
 		select {
-		case job := <-c.ingestChan:
-			c.jobsChan <- job
 		case <-ctx.Done():
+			c.Status = ConsumerStopped
 			Log.Warn("Consumer received cancellation signal, closing jobs channel")
 			close(c.jobsChan)
-			Log.Info("Jobs channel successfully closed")
+			Log.Debug("Jobs channel successfully closed")
 			c.stopActivePingJobs()
 			return
+		case job := <-c.ingestChan:
+			Log.Debug("Received job", zap.String("name", job.Name))
+			c.jobsChan <- job
 		}
 	}
 }
@@ -66,7 +86,7 @@ func (c *Consumer) startConsumer(ctx context.Context) {
 func (c *Consumer) worker(wg *sync.WaitGroup, index int) {
 	defer wg.Done()
 	logger := Log.With(zap.Int("worker_id", index))
-	logger.Info("Ping worker starting")
+	logger.Debug("Ping worker starting")
 
 	for job := range c.jobsChan {
 		c.pingServer(job, logger)
@@ -95,6 +115,7 @@ func (c *Consumer) pingServer(server Server, logger *zap.Logger) {
 	pinger.Timeout = time.Second * time.Duration(Config.PingTimeout)
 	// Override the default logger
 	pinger.SetLogger(log.Sugar())
+	pinger.SetPrivileged(true)
 
 	pinger.OnSetup = func() {
 		log.Info("Ping started")
@@ -123,10 +144,11 @@ func (c *Consumer) pingServer(server Server, logger *zap.Logger) {
 }
 
 // NewConsumer constructs a consumer object which runs workers to ping the specified destinations
-func NewConsumer(uiEventChan chan UIEvent) *Consumer {
+func NewConsumer() *Consumer {
 	return &Consumer{
 		ingestChan:  make(chan Server),
 		jobsChan:    make(chan Server),
-		uiEventChan: uiEventChan,
+		UIEventChan: make(chan UIEvent),
+		Status:      ConsumerNotStarted,
 	}
 }

@@ -6,6 +6,8 @@
 *.dylib
 ekko
 
+.DS_Store
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -26,3 +28,4 @@ config.yaml
 
 # Distribution
 dist/
+pre_build/

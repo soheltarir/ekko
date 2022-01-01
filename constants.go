@@ -6,10 +6,22 @@ import (
 )
 
 const (
-	DefaultFileLogPath = "logs/results.ndjson"
-	DefaultColor       = pterm.FgWhite
-	DefaultWarnColor   = pterm.FgLightYellow
-	DefaultErrorColor  = pterm.FgRed
+	DefaultColor      = pterm.FgWhite
+	DefaultGoodColor  = pterm.FgGreen
+	DefaultWarnColor  = pterm.FgLightYellow
+	DefaultErrorColor = pterm.FgRed
+	DefaultFileLogDir = "logs"
+	ResultsLogName    = "results.ndjson"
+	DebugLogName      = "debug.ndjson"
+	FileLogPermission = 0644
+)
+
+type ConsumerStatus int
+
+const (
+	ConsumerNotStarted ConsumerStatus = iota
+	ConsumerRunning
+	ConsumerStopped
 )
 
 var GlobalLogConfig = zapcore.EncoderConfig{

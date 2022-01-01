@@ -1,10 +1,10 @@
 BINARY_NAME=ludus-pinger
-CONFIG_URL=https://public-configurations.s3.ap-southeast-1.amazonaws.com/ping-logger-config.yaml
+CONFIG_URL=https://public-configurations.s3.ap-southeast-1.amazonaws.com/ekko_sample_config.yaml
 
 define create_pkg_folder
 	mkdir -p ${PWD}/dist/ekko-$(1)
 	cd ${PWD}/dist/ekko-$(1) && curl ${CONFIG_URL} --output config.yaml
-	cd ${PWD}/dist/ekko-$(1) && mkdir logs
+	cd ${PWD}/dist/ekko-$(1) && mkdir -p logs
 endef
 
 define compress_pkg
