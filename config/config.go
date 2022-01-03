@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/mcuadros/go-defaults"
@@ -31,6 +31,7 @@ type config struct {
 }
 
 var Config *config
+var FileLogPath string
 
 func initialiseViper() {
 	viper.SetConfigName("config")
@@ -40,6 +41,10 @@ func initialiseViper() {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Panicf("Error reading config file: %s\n", err)
 	}
+}
+
+func setupLogDirectory() {
+
 }
 
 func init() {
