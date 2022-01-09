@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/soheltarir/ekko/config"
+	"github.com/soheltarir/ekko/consumer"
+	"github.com/soheltarir/ekko/logger"
 	"go.uber.org/zap"
 	"time"
 )
@@ -10,23 +13,24 @@ import (
 // the producer repeats sending of events after sleeping for Config.PingInterval seconds,
 // i.e., the destinations are pinged every 30 Config.PingInterval seconds.
 type Producer struct {
-	callbackFunc func(event Server)
+	callbackFunc func(event consumer.Event)
 }
 
-// start runs the producer to trigger events indefinitely
-func (p Producer) start(ctx context.Context) {
+// Start runs the producer to trigger events indefinitely
+func (p Producer) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			Log.Debug("Producer received cancellation signal, exiting...")
+			logger.Log.Debug("Producer received cancellation signal, exiting...")
 			return
 		default:
-			for _, server := range Config.Servers {
-				Log.Debug("Sending event", zap.String("name", server.Name))
-				p.callbackFunc(server)
+			for _, server := range config.Config.Servers {
+				pingEvent := consumer.NewEvent(server)
+				logger.Log.Debug("Sending event", zap.Any("event", pingEvent))
+				p.callbackFunc(pingEvent)
 			}
-			Log.Debug("Producer sleeping", zap.Int64("sleep_duration", Config.PingInterval))
-			time.Sleep(time.Duration(Config.PingInterval) * time.Second)
+			logger.Log.Debug("Producer sleeping", zap.Int64("sleep_duration", config.Config.PingInterval))
+			time.Sleep(time.Duration(config.Config.PingInterval) * time.Second)
 		}
 	}
 }
